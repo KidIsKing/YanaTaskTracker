@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
 
 
@@ -14,3 +14,12 @@ class TaskUpdate(BaseModel):
     description: str | None = Field(default=None, max_leght=250, description="Описание задачи")
     deadline: str | None = Field(default=None, max_leght=50, description="Дедлайн задачи. Строго в формате: 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ'")
     category: str | None = Field(default="Today", max_leght=100, description="Категория задачи")
+
+
+class TaskResponse(BaseModel):
+    model_config = {"from_attributes": True}
+    id: int
+    title: str
+    description: str | None = None
+    deadline: str | datetime = datetime.now() + timedelta(days=1)
+    category: str = "Today"
