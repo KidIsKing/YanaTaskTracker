@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class TaskRequest(BaseModel):
@@ -10,6 +10,8 @@ class TaskRequest(BaseModel):
 
 
 class TaskUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     title: str | None = Field(None, max_leght=100, description="Название задачи")
     description: str | None = Field(default=None, max_leght=250, description="Описание задачи")
     deadline: str | None = Field(default=None, max_leght=50, description="Дедлайн задачи. Строго в формате: 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ'")

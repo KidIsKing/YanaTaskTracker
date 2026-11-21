@@ -37,16 +37,16 @@ def get_all_tasks(db: Session = Depends(get_db)):
     return db.query(Task).all()
 
 
-@app.get("/api/v1/task_by_title", response_model=TaskResponse)
-def get_task_by_title(
-    task_title: str,
+@app.get("/api/v1/task_by_id", response_model=TaskResponse)
+def get_task_by_id(
+    task_id: int,
     db: Session = Depends(get_db)
 ) -> TaskResponse:
-    task = db.query(Task).filter(Task.title == task_title).first()
+    task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task '{task_title}' not found."
+            detail=f"Task {task_id} ID not found."
         )
     return task
 
@@ -58,7 +58,7 @@ def add_task(
     deadline: str | None = None,
     category: str | None = "Today",
     db: Session = Depends(get_db),
-):
+) -> TaskResponse:
     deadline = format_deadline(deadline)
     task = Task(
         title=task_title,
@@ -71,12 +71,12 @@ def add_task(
     return task
 
 
-@app.patch("/api/v1/tasks/{task_id}")
+@app.patch("/api/v1/tasks/{task_id}", response_model=TaskResponse)
 def update_task(
     task_id: int,
-    task_data: TaskUpdate,
+    new_task_data: TaskUpdate,
     db: Session = Depends(get_db),
-):
+) -> TaskResponse:
     task = db.query(Task).filter(Task.id == task_id).first()
 
     if not task:
@@ -85,7 +85,7 @@ def update_task(
             detail=f"Task '{task.title}' not found."
         )
 
-    update_data = task_data.model_dump(exclude_unset=True)
+    update_data = new_task_data.model_dump(exclude_unset=True)
     # Обновляем атрибуты найденного объекта
     for key, value in update_data.items():
         setattr(task, key, value)
@@ -96,3 +96,46 @@ def update_task(
     db.refresh(task)
 
     return task
+
+
+@app.put("/api/v1/tasks/{task_id}", response_model=TaskResponse)
+def replace_task(
+    task_id: int,
+    new_task_data: TaskUpdate,
+    db: Session = Depends(get_db)
+) -> TaskResponse:
+    task = db.query(Task).filter(Task.id == task_id).first()
+
+    if not task.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task '{task.title}' not found."
+        )
+
+    task.title = "Default title"
+    task.description = None
+    task.deadline = format_deadline(task.deadline)
+    task.category = "Today"
+
+    update_data = new_task_data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(task, key, value)
+
+    db.commit()
+    db.refresh(task)
+
+    return task
+
+
+@app.delete("/api/v1/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_task(task_id: int, db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id).first()
+
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Task '{task.title}' not found."
+        )
+
+    db.delete(task)
+    db.commit()
