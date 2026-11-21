@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from fastapi import FastAPI, Response, status, HTTPException, Depends
-from fastapi.encoders import jsonable_encoder
+from fastapi import FastAPI, status, HTTPException, Depends
 
 from app.config import settings
 from app.database import Base, engine
@@ -17,6 +16,20 @@ app = FastAPI(
 )
 
 Base.metadata.create_all(bind=engine)
+
+
+def format_deadline(deadline):
+    try:
+        # Конвертируем строку даты в datetime с определённым форматом
+        format_deadline = datetime.strptime(deadline, "%d.%m.%Y %H:%M")
+    except ValueError:
+        tomorrow = datetime.now() + timedelta(days=1)
+        format_deadline = datetime.strftime(tomorrow, "%d.%m.%Y %H:%M")
+        # raise HTTPException(
+        #     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        #     detail=f"Incorrect date format: '{e}'. Deadline will be TOMORROW."
+        # )
+    return format_deadline
 
 
 @app.get("/api/v1/tasks")
@@ -46,24 +59,15 @@ def add_task(
     category: str | None = "Today",
     db: Session = Depends(get_db),
 ):
-    try:
-        # Конвертируем строку даты в datetime с определённым форматом
-        format_deadline = datetime.strptime(deadline, "%d.%m.%Y %H:%M")
-    except ValueError as e:
-        format_deadline = datetime.strftime(datetime.now() + timedelta(days=1), "%d.%m.%Y %H:%M")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Incorrect date format: '{e}'. Deadline will be TOMORROW."
-        )
-    finally:
-        task = Task(
-            title=task_title,
-            description=description,
-            deadline=format_deadline,
-            category=category
-        )
-        db.add(task)
-        db.commit()
+    deadline = format_deadline(deadline)
+    task = Task(
+        title=task_title,
+        description=description,
+        deadline=deadline,
+        category=category
+    )
+    db.add(task)
+    db.commit()
     return task
 
 
@@ -85,6 +89,8 @@ def update_task(
     # Обновляем атрибуты найденного объекта
     for key, value in update_data.items():
         setattr(task, key, value)
+
+    task.deadline = format_deadline(task.deadline)
 
     db.commit()
     db.refresh(task)
