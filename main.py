@@ -7,7 +7,7 @@ from app.database import Base, engine
 from app.dependency import get_db
 from app.schemas import TaskRequest, TaskUpdate, TaskResponse
 from app.models import Task
-from app.constants import CATEGORY_DEFAULT
+from app.constants import category
 
 
 app = FastAPI(
@@ -96,7 +96,7 @@ def replace_task(
     task.title = "default title"
     task.description = None
     task.deadline = None
-    task.category = CATEGORY_DEFAULT
+    task.category = category.today
 
     update_data = new_task_data.model_dump(exclude_unset=True)
     for key, value in update_data.items():

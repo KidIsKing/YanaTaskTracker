@@ -1,14 +1,12 @@
 from datetime import datetime
 from pydantic import BaseModel, Field, field_validator, field_serializer
 
-from app.constants import CATEGORY_DEFAULT
-
 
 class TaskRequest(BaseModel):
     title: str = Field(..., max_length=100, description="Название задачи")
     description: str | None = Field(default=None, max_length=250, description="Описание задачи")
     deadline: datetime | None = Field(default=None, description="Дедлайн задачи. Строго в формате: 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ'")
-    category: str | None = Field(default=CATEGORY_DEFAULT, max_length=100, description="Категория задачи")
+    category: str | None = Field(default=None, max_length=100, description="Категория задачи")
 
     @field_validator("title")
     def title_not_empty(cls, v: str) -> str:
@@ -27,10 +25,10 @@ class TaskRequest(BaseModel):
 
 
 class TaskUpdate(BaseModel):
-    title: str | None = Field(max_length=100, description="Название задачи")
+    title: str | None = Field(default=None, max_length=100, description="Название задачи")
     description: str | None = Field(default=None, max_length=250, description="Описание задачи")
     deadline: datetime | None = Field(default=None, description="Дедлайн задачи. Строго в формате: 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ'")
-    category: str | None = Field(default=CATEGORY_DEFAULT, max_length=100, description="Категория задачи")
+    category: str | None = Field(default=None, max_length=100, description="Категория задачи")
 
     @field_validator("title")
     def title_not_none(cls, v: str | None) -> str:
@@ -60,8 +58,8 @@ class TaskResponse(BaseModel):
     id: int
     title: str
     description: str | None = None
-    deadline: datetime | None
-    category: str = CATEGORY_DEFAULT
+    deadline: datetime | None = None
+    category: str | None = None
 
     @field_serializer("deadline")
     def serialize_deadline(self, v: datetime | None) -> str | None:
