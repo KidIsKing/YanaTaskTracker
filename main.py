@@ -7,6 +7,7 @@ from app.database import Base, engine
 from app.dependency import get_db
 from app.schemas import TaskRequest, TaskUpdate, TaskResponse
 from app.models import Task
+from app.constants import CATEGORY_DEFAULT
 
 
 app = FastAPI(
@@ -20,7 +21,7 @@ Base.metadata.create_all(bind=engine)
 
 @app.get("/api/v1/tasks", response_model=list[TaskResponse])
 def get_all_tasks(db: Session = Depends(get_db)):
-    return db.query(Task).all()
+    return db.query(Task).order_by(Task.deadline).all()
 
 
 @app.get("/api/v1/tasks/{task_id}", response_model=TaskResponse)
@@ -92,10 +93,10 @@ def replace_task(
             detail=f"Task {task_id} ID not found."
         )
 
-    task.title = "Default title"
-    task.description = "Default description"
-    task.deadline = datetime.now() + timedelta(days=1)
-    task.category = "Today"
+    task.title = "default title"
+    task.description = None
+    task.deadline = None
+    task.category = CATEGORY_DEFAULT
 
     update_data = new_task_data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
