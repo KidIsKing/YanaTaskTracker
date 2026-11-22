@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy.orm import Session
 from fastapi import FastAPI, status, HTTPException, Depends
 
@@ -7,7 +7,7 @@ from app.database import Base, engine
 from app.dependency import get_db
 from app.schemas import TaskRequest, TaskUpdate, TaskResponse
 from app.models import Task
-from app.constants import category
+from app.constants import categories, statuses
 
 
 app = FastAPI(
@@ -46,8 +46,10 @@ def add_task(
     new_task = Task(
         title=task_data.title,
         description=task_data.description,
+        category=task_data.category,
+        status=task_data.status,
         deadline=task_data.deadline,
-        category=task_data.category
+        created_at=datetime.now()
     )
     db.add(new_task)
     db.commit()
@@ -93,10 +95,11 @@ def replace_task(
             detail=f"Task {task_id} ID not found."
         )
 
-    task.title = "default title"
+    task.title = "task title"
     task.description = None
+    task.category = categories.in_plans
+    task.status = statuses.in_process
     task.deadline = None
-    task.category = category.today
 
     update_data = new_task_data.model_dump(exclude_unset=True)
     for key, value in update_data.items():

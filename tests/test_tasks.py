@@ -10,14 +10,18 @@ def test_get_all_tasks(db_session, client):
     task1 = Task(
         title="test task 1",
         description="test 1 some info",
-        deadline=tomorrow_time,
-        category="TODAY"
+        category="TODAY",
+        status="IN PROCESS",
+        deadline=one_week_time,
+        created_at=datetime.now()
     )
     task2 = Task(
         title="test task 2",
         description="test 2 some info",
-        deadline=one_week_time,
-        category="IN PLANS"
+        category="IN PLANS",
+        status="IN PROCESS",
+        deadline=tomorrow_time,
+        created_at=datetime.now()
     )
     db_session.add(task1)
     db_session.add(task2)
@@ -28,9 +32,7 @@ def test_get_all_tasks(db_session, client):
     response = client.get("api/v1/tasks")
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json()[0]["id"] == 1  # Первый объект соответствует ID 1
-    assert response.json()[1]["id"] == 2
-    assert response.json()[0]["title"] == "test task 1"
-    assert response.json()[1]["title"] == "test task 2"
-    # assert isinstance(datetime.strftime(response.json()[0]["deadline"], "%d.%m.%Y %H:%M"), str)
-    # assert isinstance(response.json()[1]["deadline"], datetime)
+    assert response.json()[0]["id"] == 2  # Ранний дедлайн соответствует объекту с ID 2
+    assert response.json()[1]["id"] == 1
+    assert response.json()[0]["title"] == "test task 2"
+    assert response.json()[1]["title"] == "test task 1"
