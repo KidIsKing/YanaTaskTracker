@@ -6,7 +6,7 @@ class TaskRequest(BaseModel):
     title: str = Field(..., max_length=100, description="Название задачи")
     description: str | None = Field(default=None, max_length=250, description="Описание задачи")
     deadline: datetime | None = Field(default=None, description="Дедлайн задачи. Строго в формате: 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ'")
-    category: str | None = Field(default="Today", max_length=100, description="Категория задачи")
+    category: str | None = Field(default="TODAY", max_length=100, description="Категория задачи")
 
     @field_validator("title")
     def title_not_empty(cls, v: str) -> str:
@@ -24,7 +24,7 @@ class TaskUpdate(BaseModel):
     title: str | None = Field(None, max_length=100, description="Название задачи")
     description: str | None = Field(default=None, max_length=250, description="Описание задачи")
     deadline: datetime | None = Field(default=None, description="Дедлайн задачи. Строго в формате: 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ'")
-    category: str | None = Field(default="Today", max_length=100, description="Категория задачи")
+    category: str | None = Field(default="TODAY", max_length=100, description="Категория задачи")
 
     @field_validator("title")
     def title_not_empty(cls, v: str) -> str:
