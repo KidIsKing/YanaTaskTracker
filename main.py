@@ -1,13 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from fastapi import FastAPI, status, HTTPException, Depends
 
 from app.config import settings
 from app.database import Base, engine
 from app.dependency import get_db
-from app.schemas import TaskRequest, TaskUpdate, TaskResponse
+from app.schemas import TaskRequest, TaskResponse
 from app.models import Task
-from app.constants import categories, statuses
+from app.constants import DEFAULT_TITLE, categories
 
 
 app = FastAPI(
@@ -33,7 +33,7 @@ def get_task_by_id(
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task {task_id} ID not found."
+            detail=f"Task ID {task_id} not found."
         )
     return task
 
@@ -43,23 +43,47 @@ def add_task(
     task_data: TaskRequest,
     db: Session = Depends(get_db),
 ) -> TaskResponse:
+    tasks = db.query(Task).all()
+    print(tasks)
+
+    task_with_already_exists_title = db.query(Task).filter(Task.title == task_data.title).first()
+    if (
+        task_with_already_exists_title and
+        task_data.title in task_with_already_exists_title.title
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"The task '{task_data.title}' already exists."
+        )
+
+    if task_data.deadline:
+        tomorrow = datetime.now() + timedelta(days=1)
+        if (
+            task_data.category == categories.today and
+            task_data.deadline > tomorrow
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="A Task in the 'TODAY' category cannot have a deadline later than tomorrow."
+            )
+
     new_task = Task(
         title=task_data.title,
         description=task_data.description,
         category=task_data.category,
         status=task_data.status,
         deadline=task_data.deadline,
-        created_at=datetime.now()
     )
     db.add(new_task)
     db.commit()
+
     return new_task
 
 
 @app.patch("/api/v1/tasks/{task_id}", response_model=TaskResponse)
 def update_task(
     task_id: int,
-    new_task_data: TaskUpdate,
+    new_task_data: TaskRequest,
     db: Session = Depends(get_db),
 ) -> TaskResponse:
     task = db.query(Task).filter(Task.id == task_id).first()
@@ -67,7 +91,7 @@ def update_task(
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task {task_id} ID not found."
+            detail=f"Task ID {task_id} not found."
         )
 
     update_data = new_task_data.model_dump(exclude_unset=True)
@@ -84,7 +108,7 @@ def update_task(
 @app.put("/api/v1/tasks/{task_id}", response_model=TaskResponse)
 def replace_task(
     task_id: int,
-    new_task_data: TaskUpdate,
+    new_task_data: TaskRequest,
     db: Session = Depends(get_db)
 ) -> TaskResponse:
     task = db.query(Task).filter(Task.id == task_id).first()
@@ -92,16 +116,14 @@ def replace_task(
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task {task_id} ID not found."
+            detail=f"Task ID {task_id} not found."
         )
 
-    task.title = "task title"
-    task.description = None
-    task.category = categories.in_plans
-    task.status = statuses.in_process
-    task.deadline = None
+    if new_task_data.title == DEFAULT_TITLE:
+        old_task_title = task.title
+        new_task_data.title = old_task_title
 
-    update_data = new_task_data.model_dump(exclude_unset=True)
+    update_data = new_task_data.model_dump()
     for key, value in update_data.items():
         setattr(task, key, value)
 
@@ -118,7 +140,7 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Task {task_id} ID not found."
+            detail=f"Task ID {task_id} not found."
         )
 
     db.delete(task)

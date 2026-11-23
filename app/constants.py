@@ -11,3 +11,10 @@ class Status:
 
 categories = Category()
 statuses = Status()
+
+
+DEFAULT_TITLE = "task title"
+DEFAULT_DESCRIPTION = "task description"
+DEFAULT_CATEGORY = categories.today
+DEFAULT_STATUS = statuses.in_process
+DEFAULT_DEADLINE = None
